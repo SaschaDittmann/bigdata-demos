@@ -1,0 +1,432 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "resourcePrefix": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sqlserverAdminLogin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sqlserverAdminLoginPassword": {
+      "type": "securestring",
+      "minLength": 12
+    },
+    "sshUsername": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sshPassword": {
+      "type": "securestring",
+      "minLength": 12
+    },
+    "clusterLoginUsername": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clusterLoginPassword": {
+      "type": "securestring",
+      "minLength": 12
+    }
+  },
+  "variables": {
+    "storageAccountName": "[concat(parameters('resourcePrefix'),'store')]",
+    "vnetName": "[concat(parameters('resourcePrefix'),'-vnet')]",
+    "vnetPrefix": "10.0.0.0/16",
+    "vnetSubnetName": "default",
+    "vnetSubnetPrefix": "10.0.0.0/24",
+    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
+    "subnetRef": "[concat(variables('vnetID'), '/subnets/', variables('vnetSubnetName'))]",
+    "nicName": "[concat(parameters('resourcePrefix'),'-deployr-nic')]",
+    "nsgName": "[concat(parameters('resourcePrefix'),'-deployr-nsg')]",
+    "publicIpName": "[concat(parameters('resourcePrefix'),'-deployr-publicip')]",
+    "deployrDnsName": "[concat(parameters('resourcePrefix'),'-deployr')]",
+    "sqlserverName": "[concat(parameters('resourcePrefix'),'-sqlserver')]",
+    "faceapiName": "[concat(parameters('resourcePrefix'),'-faceapi')]",
+    "vmName": "[concat(parameters('resourcePrefix'),'-deployr-vm')]",
+    "vmStorageAccountContainerName": "vhds",
+    "iotHubName": "[concat(parameters('resourcePrefix'),'-iothub')]",
+    "clusterName": "[concat(parameters('resourcePrefix'),'-hdi')]"
+  },
+  "resources": [
+    {
+      "name": "[variables('storageAccountName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "Storage Account"
+      },
+      "properties": {
+        "accountType": "Standard_LRS"
+      }
+    },
+    {
+      "name": "[variables('vnetName')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "Virtual Network"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('vnetPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('vnetSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('vnetSubnetPrefix')]"
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "name": "[variables('faceapiName')]",
+      "type": "Microsoft.CognitiveServices/accounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-02-01-preview",
+      "sku": {
+        "name": "F0"
+      },
+      "kind": "Face",
+      "location": "westus",
+      "tags": {
+        "displayName": "Cognitive Services Face API"
+      },
+      "properties": {}
+    },
+
+    {
+      "name": "[variables('nsgName')]",
+      "apiVersion": "2016-03-30",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "deployR (Network Security Group)"
+      },
+      "properties": {
+        "securityRules": [
+          {
+            "name": "default-allow-ssh",
+            "properties": {
+              "protocol": "TCP",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1000,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "HTTP",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "8050",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1001,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      },
+      "dependsOn": []
+    },
+    {
+      "name": "[variables('publicIpName')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "deployR (Public IP)"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[variables('deployrDnsName')]"
+        }
+      }
+    },
+    {
+      "name": "[variables('nicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+      ],
+      "tags": {
+        "displayName": "deployR (NIC)"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
+              },
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+        }
+      }
+    },
+    {
+      "name": "[variables('vmName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+      ],
+      "tags": {
+        "displayName": "deployR (VM)"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_DS2_v2"
+        },
+        "osProfile": {
+          "computerName": "[variables('vmName')]",
+          "adminUsername": "[parameters('sshUsername')]",
+          "adminPassword": "[parameters('sshPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftRServer",
+            "offer": "RServer-Linux",
+            "sku": "Enterprise",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "vmOSDisk",
+            "vhd": {
+              "uri": "[concat('https://', variables('storageAccountName'), '.blob.core.windows.net/', variables('vmStorageAccountContainerName'), '/deployR-os.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[variables('sqlserverName')]",
+      "type": "Microsoft.Sql/servers",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2014-04-01-preview",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "SQL Server"
+      },
+      "properties": {
+        "administratorLogin": "[parameters('sqlserverAdminLogin')]",
+        "administratorLoginPassword": "[parameters('sqlserverAdminLoginPassword')]"
+      },
+      "resources": [
+        {
+          "name": "AllowAllWindowsAzureIps",
+          "type": "firewallrules",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2014-04-01-preview",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', variables('sqlserverName'))]"
+          ],
+          "properties": {
+            "startIpAddress": "0.0.0.0",
+            "endIpAddress": "0.0.0.0"
+          }
+        },
+        {
+          "name": "AllowAllExternalTraffic",
+          "type": "firewallrules",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2014-04-01-preview",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', variables('sqlserverName'))]"
+          ],
+          "properties": {
+            "startIpAddress": "0.0.0.0",
+            "endIpAddress": "255.255.255.255"
+          }
+        },
+        {
+          "name": "vending",
+          "type": "databases",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2014-04-01-preview",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', variables('sqlserverName'))]"
+          ],
+          "tags": {
+            "displayName": "vending"
+          },
+          "properties": {
+            "collation": "SQL_Latin1_General_CP1_CI_AS",
+            "edition": "Premium",
+            "maxSizeBytes": "1073741824",
+            "requestedServiceObjectiveName": "P1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "[variables('iotHubName')]",
+      "apiVersion": "2016-02-03",
+      "type": "Microsoft.Devices/iotHubs",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "IoT Hub"
+      },
+      "sku": {
+        "name": "S1",
+        "tier": "Standard",
+        "capacity": 1
+      },
+      "properties": {
+        "eventHubEndpoints": {
+          "events": {
+            "path": "[variables('iotHubName')]",
+            "retentionTimeInDays": 1,
+            "partitionCount": 4
+          },
+          "operationsMonitoringEvents": {
+            "path": "[concat(variables('iotHubName'),'-operationmonitoring')]",
+            "retentionTimeInDays": 1,
+            "partitionCount": 4
+          }
+        },
+        "cloudToDevice": {
+          "defaultTtlAsIso8601": "PT1H",
+          "maxDeliveryCount": 10,
+          "feedback": {
+            "maxDeliveryCount": 10,
+            "ttlAsIso8601": "PT1H",
+            "lockDurationAsIso8601": "PT1M"
+          }
+        },
+        "location": "[resourceGroup().location]"
+      }
+    },
+    {
+      "name": "[variables('clusterName')]",
+      "type": "Microsoft.HDInsight/clusters",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-03-01-preview",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountName'))]"
+      ],
+      "tags": {
+        "displayName": "HDInsight RServer"
+      },
+      "properties": {
+        "clusterVersion": "3.4",
+        "osType": "Linux",
+        "tier": "Standard",
+        "clusterDefinition": {
+          "kind": "rserver",
+          "configurations": {
+            "gateway": {
+              "restAuthCredential.isEnabled": true,
+              "restAuthCredential.username": "[parameters('clusterLoginUsername')]",
+              "restAuthCredential.password": "[parameters('clusterLoginPassword')]"
+            },
+            "rserver": {
+              "rstudio": true
+            }
+          }
+        },
+        "storageProfile": {
+          "storageaccounts": [
+            {
+              "name": "[replace(replace(concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')), '2015-06-15').primaryEndpoints.blob),'https:',''),'/','')]",
+              "isDefault": true,
+              "container": "hdi",
+              "key": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2015-06-15').key1]"
+            }
+          ]
+        },
+        "computeProfile": {
+          "roles": [
+            {
+              "name": "headnode",
+              "targetInstanceCount": "2",
+              "hardwareProfile": {
+                "vmSize": "Standard_D12_v2"
+              },
+              "osProfile": {
+                "linuxOperatingSystemProfile": {
+                  "username": "[parameters('sshUsername')]",
+                  "password": "[parameters('sshPassword')]"
+                }
+              }
+            },
+            {
+              "name": "workernode",
+              "targetInstanceCount": 2,
+              "hardwareProfile": {
+                "vmSize": "Standard_D12_v2"
+              },
+              "osProfile": {
+                "linuxOperatingSystemProfile": {
+                  "username": "[parameters('sshUsername')]",
+                  "password": "[parameters('sshPassword')]"
+                }
+              }
+            },
+            {
+              "name": "edgenode",
+              "targetInstanceCount": 1,
+              "hardwareProfile": {
+                "vmSize": "Standard_D12_v2"
+              },
+              "osProfile": {
+                "linuxOperatingSystemProfile": {
+                  "username": "[parameters('sshUsername')]",
+                  "password": "[parameters('sshPassword')]"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "iotHubKeys": {
+      "value": "[listKeys(resourceId('Microsoft.Devices/iotHubs', variables('iotHubName')), '2016-02-03')]",
+      "type": "object"
+    }
+  }
+}

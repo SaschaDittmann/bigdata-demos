@@ -6,11 +6,11 @@
       "type": "string",
       "minLength": 1
     },
-    "sqlserverAdminLogin": {
+    "sqlserverAdminUsername": {
       "type": "string",
       "minLength": 1
     },
-    "sqlserverAdminLoginPassword": {
+    "sqlserverAdminPassword": {
       "type": "securestring",
       "minLength": 12
     },
@@ -303,8 +303,8 @@
         "displayName": "SQL Server"
       },
       "properties": {
-        "administratorLogin": "[parameters('sqlserverAdminLogin')]",
-        "administratorLoginPassword": "[parameters('sqlserverAdminLoginPassword')]"
+        "administratorLogin": "[parameters('sqlserverAdminUsername')]",
+        "administratorLoginPassword": "[parameters('sqlserverAdminPassword')]"
       },
       "resources": [
         {

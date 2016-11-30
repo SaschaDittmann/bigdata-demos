@@ -5,10 +5,10 @@
     "resourcePrefix": {
       "value": "vendingmachines"
     },
-    "sqlserverAdminLogin": {
+    "sqlserverAdminUsername": {
       "value": "sqladmin"
     },
-    "sqlserverAdminLoginPassword": {
+    "sqlserverAdminPassword": {
       "value": "AosQwQT3VpDihct05S4m"
     },
     "sshUsername": {

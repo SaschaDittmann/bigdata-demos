@@ -28,5 +28,5 @@ Create a resource group:
 
 Start deployment
 
-    PS C:\> New-AzureResourceGroupDeployment -Name kafkademo-deployment -ResourceGroupName "mrsonspark" -TemplateFile C:\gitsrc\bigdata-demos\master\VendingMachines\VendingMachines-ARM\azuredeploy.json -TemplateParameterFile C:\gitsrc\bigdata-demos\master\VendingMachines\VendingMachines-ARM\azuredeploy.parameters.json -Verbose
+    PS C:\> New-AzureResourceGroupDeployment -Name vendingmachines-deployment -ResourceGroupName "mrsonspark" -TemplateFile C:\gitsrc\bigdata-demos\master\VendingMachines\VendingMachines-ARM\azuredeploy.json -TemplateParameterFile C:\gitsrc\bigdata-demos\master\VendingMachines\VendingMachines-ARM\azuredeploy.parameters.json -Verbose
  

@@ -1,4 +1,3 @@
-
 # Load the trained model and input example
 load("pricingModel.rda")
 load("inputExample.rda")
@@ -9,4 +8,6 @@ inputExample[1,]$gender <- "F"
 inputExample[1,]$productSelected <- "coconut water"
 
 # Execute the prediction
-prediction <- predict(pricingModel, data = inputExample)
+prediction <- rxPredict(pricingModel, data = inputExample)
+
+View(prediction)

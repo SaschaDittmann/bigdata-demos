@@ -1,4 +1,3 @@
-
 # Load packages needed for DeployR
 require(deployrUtils)
 deployrPackage("RevoScaleR")

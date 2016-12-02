@@ -308,7 +308,7 @@
       },
       "resources": [
         {
-          "name": "AllowAllWindowsAzureIps",
+          "name": "AllowAllInternalIps",
           "type": "firewallrules",
           "location": "[resourceGroup().location]",
           "apiVersion": "2014-04-01-preview",
@@ -321,7 +321,7 @@
           }
         },
         {
-          "name": "AllowAllExternalTraffic",
+          "name": "AllowAllExternalIps",
           "type": "firewallrules",
           "location": "[resourceGroup().location]",
           "apiVersion": "2014-04-01-preview",

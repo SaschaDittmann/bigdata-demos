@@ -1,4 +1,6 @@
-﻿CREATE TABLE [Transactions] (
+﻿USE vending
+GO
+CREATE TABLE [Transactions] (
 	TransactionId int IDENTITY NOT NULL PRIMARY KEY NONCLUSTERED,
 	VendingMachineId char(36),
 	ItemName varchar(255),

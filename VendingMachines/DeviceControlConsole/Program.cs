@@ -10,7 +10,7 @@ namespace DeviceControlConsole
 {
     class Program
     {
-        static string _storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=<your account name>;AccountKey=<your account key>";
+        static string _storageConnectionString = System.Configuration.ConfigurationManager.AppSettings["StorageConnectionString"];
         static string _IoTHubConnectionString = System.Configuration.ConfigurationManager.AppSettings["IoTHubServiceConnectionsString"];
         static ServiceClient _serviceClient;
 

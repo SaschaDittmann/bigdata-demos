@@ -1,0 +1,4 @@
+{
+  "EventHubName": "aerospacetemplatedg01",
+  "EventHubConnectionString": "Endpoint=sb://aerospacetemplatedg01-ns.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=TEVIZam/9+VV/bF+9aCYS8Vs6Km0trwWwnMEp+7X3qA="
+}
